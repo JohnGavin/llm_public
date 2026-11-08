@@ -24,5 +24,7 @@ utils::globalVariables(c(
   "total_cost",
   "fetch_timestamp",
   "call",
-  "package"
+  "package",
+  "n_calls",
+  "day_total"
 ))
