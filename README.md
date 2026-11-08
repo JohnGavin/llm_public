@@ -23,10 +23,11 @@ Status: early development, version 0.0.0.9000, not released.
 
 The development environment is reproducible with Nix and the
 [rix](https://docs.ropensci.org/rix/) package. `default.R` lists the
-packages; `default.nix` is generated from it.
+packages; `default.nix` (committed, pinned to the 2026-02-02 nixpkgs
+snapshot) is generated from it. Skip step 1 unless you change `default.R`.
 
 ```sh
-# 1. Generate default.nix from default.R (needs a shell with rix available)
+# 1. Regenerate default.nix from default.R (needs a shell with rix available)
 nix-shell --expr "$(curl -sl https://raw.githubusercontent.com/b-rodrigues/rix/master/inst/extdata/default.nix)" \
   --run "Rscript default.R"
 
