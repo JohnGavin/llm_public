@@ -17,6 +17,7 @@ let
   rpkgs = builtins.attrValues {
     inherit (pkgs.rPackages) 
       checkmate
+      chromote
       cli
       DBI
       devtools

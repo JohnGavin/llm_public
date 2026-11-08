@@ -8,7 +8,9 @@ r_pkgs <- c(
   "checkmate", "cli", "DBI", "dplyr", "duckdb", "htmltools", "jsonlite",
   "purrr", "scales", "tibble",
   # Development
-  "devtools", "testthat", "roxygen2", "withr"
+  "devtools", "testthat", "roxygen2", "withr",
+  # Optional: browser-engine test of the hover popup (skipped when absent)
+  "chromote"
 ) |>
   unique() |>
   sort()
