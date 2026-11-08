@@ -23,7 +23,7 @@ Status: early development, version 0.0.0.9000, not released.
 
 The development environment is reproducible with Nix and the
 [rix](https://docs.ropensci.org/rix/) package. `default.R` lists the
-packages; `default.nix` (committed, pinned to the 2026-02-02 nixpkgs
+packages; `default.nix` (committed, pinned to the 2026-10-13 nixpkgs
 snapshot) is generated from it. Skip step 1 unless you change `default.R`.
 
 ```sh

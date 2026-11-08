@@ -16,7 +16,7 @@ r_pkgs <- c(
   sort()
 
 rix(
-  date = "2026-02-02",
+  date = "2026-10-13",
   project_path = ".",
   overwrite = TRUE,
   r_pkgs = r_pkgs,
