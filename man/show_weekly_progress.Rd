@@ -11,7 +11,7 @@ show_weekly_progress(cache_dir, weekly_limit = NULL)
 file. Required: no location is searched.}
 
 \item{weekly_limit}{Weekly cost limit in USD. If NULL, reads from environment
-variable \code{LLM_WEEKLY_LIMIT} or defaults to 120.}
+variable \code{LLMPUBLIC_WEEKLY_LIMIT} or defaults to 120.}
 }
 \value{
 Invisibly returns a list with elements:

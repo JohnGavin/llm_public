@@ -441,9 +441,9 @@ show_usage_progress <- function(current, limit, label = "Usage",
 #' @param cache_dir Directory containing the cached `ccusage_daily_all.json`
 #'   file. Required: no location is searched.
 #' @param daily_limit Daily cost limit in USD. If NULL, reads from environment variable
-#'   `LLM_DAILY_LIMIT` or defaults to 30.
+#'   `LLMPUBLIC_DAILY_LIMIT` or defaults to 30.
 #' @param token_limit Daily token limit. If NULL, reads from environment variable
-#'   `LLM_DAILY_TOKEN_LIMIT` or defaults to 500000.
+#'   `LLMPUBLIC_DAILY_TOKEN_LIMIT` or defaults to 500000.
 #'
 #' @return Invisibly returns a list with elements:
 #'   - `cost`: Numeric, current daily cost
@@ -482,10 +482,10 @@ show_daily_progress <- function(cache_dir,
 
   # Get limits from environment or defaults
   if (is.null(daily_limit)) {
-    daily_limit <- as.numeric(Sys.getenv("LLM_DAILY_LIMIT", "30"))
+    daily_limit <- as.numeric(Sys.getenv("LLMPUBLIC_DAILY_LIMIT", "30"))
   }
   if (is.null(token_limit)) {
-    token_limit <- as.numeric(Sys.getenv("LLM_DAILY_TOKEN_LIMIT", "500000"))
+    token_limit <- as.numeric(Sys.getenv("LLMPUBLIC_DAILY_TOKEN_LIMIT", "500000"))
   }
 
   # Load today's data
@@ -541,7 +541,7 @@ show_daily_progress <- function(cache_dir,
 #' @param cache_dir Directory containing the cached `ccusage_daily_all.json`
 #'   file. Required: no location is searched.
 #' @param weekly_limit Weekly cost limit in USD. If NULL, reads from environment
-#'   variable `LLM_WEEKLY_LIMIT` or defaults to 120.
+#'   variable `LLMPUBLIC_WEEKLY_LIMIT` or defaults to 120.
 #'
 #' @return Invisibly returns a list with elements:
 #'   - `cost`: Numeric, total cost for the last 7 days
@@ -577,7 +577,7 @@ show_weekly_progress <- function(cache_dir, weekly_limit = NULL) {
 
   # Get limit from environment or default
   if (is.null(weekly_limit)) {
-    weekly_limit <- as.numeric(Sys.getenv("LLM_WEEKLY_LIMIT", "120"))
+    weekly_limit <- as.numeric(Sys.getenv("LLMPUBLIC_WEEKLY_LIMIT", "120"))
   }
 
   # Load daily data
@@ -627,14 +627,14 @@ show_weekly_progress <- function(cache_dir, weekly_limit = NULL) {
 #'
 #' @param cache_dir Directory containing the cached `ccusage_*_all.json`
 #'   files. Required: no location is searched.
-#' @param daily_limit Daily cost limit in USD. If NULL, reads from `LLM_DAILY_LIMIT`
+#' @param daily_limit Daily cost limit in USD. If NULL, reads from `LLMPUBLIC_DAILY_LIMIT`
 #'   environment variable or defaults to 30.
-#' @param weekly_limit Weekly cost limit in USD. If NULL, reads from `LLM_WEEKLY_LIMIT`
+#' @param weekly_limit Weekly cost limit in USD. If NULL, reads from `LLMPUBLIC_WEEKLY_LIMIT`
 #'   environment variable or defaults to 120.
-#' @param token_limit Daily token limit. If NULL, reads from `LLM_DAILY_TOKEN_LIMIT`
+#' @param token_limit Daily token limit. If NULL, reads from `LLMPUBLIC_DAILY_TOKEN_LIMIT`
 #'   environment variable or defaults to 500000.
 #' @param show_max5 Logical whether to show Max5 5-hour block status when the
-#'   `LLM_PLAN` environment variable is set to "max5". Default: TRUE.
+#'   `LLMPUBLIC_PLAN` environment variable is set to "max5". Default: TRUE.
 #'
 #' @return Invisibly returns a list containing:
 #'   - `daily`: List from [show_daily_progress()]
@@ -687,7 +687,7 @@ show_usage_dashboard <- function(cache_dir,
 
   # Show Max5 block status if enabled
   max5_stats <- NULL
-  if (show_max5 && tolower(Sys.getenv("LLM_PLAN", "")) == "max5") {
+  if (show_max5 && tolower(Sys.getenv("LLMPUBLIC_PLAN", "")) == "max5") {
     cli::cli_text("")
     max5_stats <- show_max5_block_status(cache_dir)
   }
@@ -844,10 +844,10 @@ calculate_block_usage <- function(blocks_data, current_window) {
     # Use the same overridable limit as the non-empty path below, rather than
     # a second hardcoded 88000; otherwise this function reports a different
     # tokens_limit depending on whether blocks_data is empty, even with
-    # LLM_BLOCK_LIMIT_TOKENS set.
+    # LLMPUBLIC_BLOCK_LIMIT_TOKENS set.
     return(list(
       tokens_used = 0,
-      tokens_limit = as.numeric(Sys.getenv("LLM_BLOCK_LIMIT_TOKENS", "88000")),
+      tokens_limit = as.numeric(Sys.getenv("LLMPUBLIC_BLOCK_LIMIT_TOKENS", "88000")),
       usage_pct = 0,
       time_remaining = current_window$time_remaining,
       block_start = current_window$block_start,
@@ -869,7 +869,7 @@ calculate_block_usage <- function(blocks_data, current_window) {
   }
 
   # Max5 limit per 5-hour block
-  tokens_limit <- as.numeric(Sys.getenv("LLM_BLOCK_LIMIT_TOKENS", "88000"))
+  tokens_limit <- as.numeric(Sys.getenv("LLMPUBLIC_BLOCK_LIMIT_TOKENS", "88000"))
 
   list(
     tokens_used = tokens_used,
@@ -910,10 +910,10 @@ calculate_block_usage <- function(blocks_data, current_window) {
 #'
 #' @details
 #' This function is most useful when called from [show_usage_dashboard()] with
-#' `LLM_PLAN=max5` environment variable set. It automatically applies warning
+#' `LLMPUBLIC_PLAN=max5` environment variable set. It automatically applies warning
 #' thresholds based on:
-#' - `LLM_WARN_THRESHOLD` (default 0.75): Yellow warning
-#' - `LLM_CRITICAL_THRESHOLD` (default 0.90): Red critical alert
+#' - `LLMPUBLIC_WARN_THRESHOLD` (default 0.75): Yellow warning
+#' - `LLMPUBLIC_CRITICAL_THRESHOLD` (default 0.90): Red critical alert
 #'
 #' @seealso
 #' - [get_current_block_window()] to determine the active block
@@ -970,8 +970,8 @@ show_max5_block_status <- function(cache_dir) {
   cli::cli_end()
 
   # Add warnings based on thresholds
-  warn_threshold <- as.numeric(Sys.getenv("LLM_WARN_THRESHOLD", "0.75"))
-  critical_threshold <- as.numeric(Sys.getenv("LLM_CRITICAL_THRESHOLD", "0.90"))
+  warn_threshold <- as.numeric(Sys.getenv("LLMPUBLIC_WARN_THRESHOLD", "0.75"))
+  critical_threshold <- as.numeric(Sys.getenv("LLMPUBLIC_CRITICAL_THRESHOLD", "0.90"))
 
   if (pct >= critical_threshold * 100) {
     cli::cli_alert_danger("CRITICAL: {pct}% of 5-hour block limit reached - consider pausing")
@@ -1048,10 +1048,10 @@ get_block_history <- function(cache_dir, days = 5, grouped = TRUE) {
     return(NULL)
   }
 
-  # Max5 limit per 5-hour block. This MUST match the LLM_BLOCK_LIMIT_TOKENS
+  # Max5 limit per 5-hour block. This MUST match the LLMPUBLIC_BLOCK_LIMIT_TOKENS
   # override used by calculate_block_usage(), so setting the env var changes
   # both show_max5_block_status() and get_block_history().
-  tokens_limit <- as.numeric(Sys.getenv("LLM_BLOCK_LIMIT_TOKENS", "88000"))
+  tokens_limit <- as.numeric(Sys.getenv("LLMPUBLIC_BLOCK_LIMIT_TOKENS", "88000"))
 
   # Get cutoff time
   cutoff <- Sys.time() - days * 24 * 3600

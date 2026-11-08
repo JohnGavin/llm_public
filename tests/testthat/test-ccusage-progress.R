@@ -82,7 +82,7 @@ test_that("show_daily_progress returns NULL when the cache file is missing or em
 })
 
 test_that("show_daily_progress uses environment variables for limits", {
-  withr::local_envvar(LLM_DAILY_LIMIT = "50", LLM_DAILY_TOKEN_LIMIT = "1000000")
+  withr::local_envvar(LLMPUBLIC_DAILY_LIMIT = "50", LLMPUBLIC_DAILY_TOKEN_LIMIT = "1000000")
   cache <- write_ccusage_cache(list(demo = daily_df(Sys.Date(), 25, 500000)))
 
   result <- show_daily_progress(cache)
@@ -138,7 +138,7 @@ test_that("show_weekly_progress handles no recent data", {
 })
 
 test_that("show_weekly_progress uses the environment variable for the limit", {
-  withr::local_envvar(LLM_WEEKLY_LIMIT = "200")
+  withr::local_envvar(LLMPUBLIC_WEEKLY_LIMIT = "200")
   cache <- write_ccusage_cache(list(demo = daily_df(Sys.Date(), 100, 1000000)))
   expect_equal(show_weekly_progress(cache)$cost_pct, 50)
 })
@@ -164,8 +164,8 @@ test_that("show_usage_dashboard combines daily and weekly stats", {
   expect_null(result$max5)
 })
 
-test_that("show_usage_dashboard includes block status when LLM_PLAN is max5", {
-  withr::local_envvar(LLM_PLAN = "max5")
+test_that("show_usage_dashboard includes block status when LLMPUBLIC_PLAN is max5", {
+  withr::local_envvar(LLMPUBLIC_PLAN = "max5")
   cache <- write_ccusage_cache(list(demo = daily_df()))
   write_ccusage_file(cache, list(demo = blocks_df(in_current_block())), "blocks")
 
@@ -293,7 +293,7 @@ test_that("calculate_block_usage handles no data in the current block", {
 })
 
 test_that("calculate_block_usage uses the environment variable for the limit", {
-  withr::local_envvar(LLM_BLOCK_LIMIT_TOKENS = "100000")
+  withr::local_envvar(LLMPUBLIC_BLOCK_LIMIT_TOKENS = "100000")
   window <- get_current_block_window()
   blocks_data <- tibble::tibble(timestamp = in_current_block(), totalTokens = 50000)
 
@@ -302,8 +302,8 @@ test_that("calculate_block_usage uses the environment variable for the limit", {
   expect_equal(result$usage_pct, 50)
 })
 
-test_that("calculate_block_usage empty-data fallback honours LLM_BLOCK_LIMIT_TOKENS", {
-  withr::local_envvar(LLM_BLOCK_LIMIT_TOKENS = "123456")
+test_that("calculate_block_usage empty-data fallback honours LLMPUBLIC_BLOCK_LIMIT_TOKENS", {
+  withr::local_envvar(LLMPUBLIC_BLOCK_LIMIT_TOKENS = "123456")
   window <- get_current_block_window()
 
   expect_equal(calculate_block_usage(NULL, window)$tokens_limit, 123456)
@@ -359,7 +359,7 @@ test_that("show_max5_block_status handles a missing blocks file", {
 })
 
 test_that("show_max5_block_status uses the threshold environment variables", {
-  withr::local_envvar(LLM_WARN_THRESHOLD = "0.60", LLM_CRITICAL_THRESHOLD = "0.80")
+  withr::local_envvar(LLMPUBLIC_WARN_THRESHOLD = "0.60", LLMPUBLIC_CRITICAL_THRESHOLD = "0.80")
   withr::local_options(list(cli.num_colors = 1, cli.dynamic = FALSE))
   cache <- write_ccusage_cache(list(demo = blocks_df(in_current_block(), 70400)), "blocks")
 
@@ -408,8 +408,8 @@ test_that("get_block_history returns NULL without data", {
   expect_null(get_block_history(withr::local_tempdir()))
 })
 
-test_that("get_block_history honours LLM_BLOCK_LIMIT_TOKENS for usage_pct and day_pct", {
-  withr::local_envvar(LLM_BLOCK_LIMIT_TOKENS = "100000")
+test_that("get_block_history honours LLMPUBLIC_BLOCK_LIMIT_TOKENS for usage_pct and day_pct", {
+  withr::local_envvar(LLMPUBLIC_BLOCK_LIMIT_TOKENS = "100000")
   withr::local_options(list(cli.num_colors = 1, cli.dynamic = FALSE))
   cache <- write_ccusage_cache(list(demo = blocks_df(Sys.time() - 300, 50000)), "blocks")
 

@@ -80,6 +80,18 @@ Hover popups:
 | `tt()` | A popup `<span>` |
 | `tt_dependency()` | The stylesheet and script that make it work |
 
+## Environment variables
+
+The usage helpers read these optional variables (all unset by default):
+
+- `LLMPUBLIC_DAILY_LIMIT`: daily cost limit in USD (default 30).
+- `LLMPUBLIC_DAILY_TOKEN_LIMIT`: daily token limit (default 500000).
+- `LLMPUBLIC_WEEKLY_LIMIT`: 7-day cost limit in USD (default 120).
+- `LLMPUBLIC_PLAN`: set to `max5` to include 5-hour block status in the dashboard (default empty).
+- `LLMPUBLIC_BLOCK_LIMIT_TOKENS`: token limit per 5-hour block (default 88000).
+- `LLMPUBLIC_WARN_THRESHOLD`: block usage fraction for a warning (default 0.75).
+- `LLMPUBLIC_CRITICAL_THRESHOLD`: block usage fraction for a critical alert (default 0.90).
+
 ## Example
 
 ```r

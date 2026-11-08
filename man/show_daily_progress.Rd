@@ -11,10 +11,10 @@ show_daily_progress(cache_dir, daily_limit = NULL, token_limit = NULL)
 file. Required: no location is searched.}
 
 \item{daily_limit}{Daily cost limit in USD. If NULL, reads from environment variable
-\code{LLM_DAILY_LIMIT} or defaults to 30.}
+\code{LLMPUBLIC_DAILY_LIMIT} or defaults to 30.}
 
 \item{token_limit}{Daily token limit. If NULL, reads from environment variable
-\code{LLM_DAILY_TOKEN_LIMIT} or defaults to 500000.}
+\code{LLMPUBLIC_DAILY_TOKEN_LIMIT} or defaults to 500000.}
 }
 \value{
 Invisibly returns a list with elements:

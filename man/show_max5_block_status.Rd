@@ -31,11 +31,11 @@ and calculates the current block window.
 Show Max5 5-hour block status
 
 This function is most useful when called from \code{\link[=show_usage_dashboard]{show_usage_dashboard()}} with
-\code{LLM_PLAN=max5} environment variable set. It automatically applies warning
+\code{LLMPUBLIC_PLAN=max5} environment variable set. It automatically applies warning
 thresholds based on:
 \itemize{
-\item \code{LLM_WARN_THRESHOLD} (default 0.75): Yellow warning
-\item \code{LLM_CRITICAL_THRESHOLD} (default 0.90): Red critical alert
+\item \code{LLMPUBLIC_WARN_THRESHOLD} (default 0.75): Yellow warning
+\item \code{LLMPUBLIC_CRITICAL_THRESHOLD} (default 0.90): Red critical alert
 }
 }
 \examples{

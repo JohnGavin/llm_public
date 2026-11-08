@@ -16,17 +16,17 @@ show_usage_dashboard(
 \item{cache_dir}{Directory containing the cached \verb{ccusage_*_all.json}
 files. Required: no location is searched.}
 
-\item{daily_limit}{Daily cost limit in USD. If NULL, reads from \code{LLM_DAILY_LIMIT}
+\item{daily_limit}{Daily cost limit in USD. If NULL, reads from \code{LLMPUBLIC_DAILY_LIMIT}
 environment variable or defaults to 30.}
 
-\item{weekly_limit}{Weekly cost limit in USD. If NULL, reads from \code{LLM_WEEKLY_LIMIT}
+\item{weekly_limit}{Weekly cost limit in USD. If NULL, reads from \code{LLMPUBLIC_WEEKLY_LIMIT}
 environment variable or defaults to 120.}
 
-\item{token_limit}{Daily token limit. If NULL, reads from \code{LLM_DAILY_TOKEN_LIMIT}
+\item{token_limit}{Daily token limit. If NULL, reads from \code{LLMPUBLIC_DAILY_TOKEN_LIMIT}
 environment variable or defaults to 500000.}
 
 \item{show_max5}{Logical whether to show Max5 5-hour block status when the
-\code{LLM_PLAN} environment variable is set to "max5". Default: TRUE.}
+\code{LLMPUBLIC_PLAN} environment variable is set to "max5". Default: TRUE.}
 }
 \value{
 Invisibly returns a list containing:
