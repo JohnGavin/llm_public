@@ -4,6 +4,7 @@
 ^README\.Rmd$
 ^default\.R$
 ^default\.nix$
+^\.git$
 ^\.claude$
 ^\.github$
 ^\.gitignore$
