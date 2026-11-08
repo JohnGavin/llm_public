@@ -1,0 +1,23 @@
+# Generates default.nix for the llmpublic development shell.
+# Run with: Rscript default.R   (requires the rix package)
+
+library(rix)
+
+r_pkgs <- c(
+  # Imports
+  "checkmate", "cli", "DBI", "dplyr", "duckdb", "htmltools", "jsonlite",
+  "purrr", "scales", "tibble",
+  # Development
+  "devtools", "testthat", "roxygen2", "withr"
+) |>
+  unique() |>
+  sort()
+
+rix(
+  date = "2026-02-02",
+  project_path = ".",
+  overwrite = TRUE,
+  r_pkgs = r_pkgs,
+  system_pkgs = NULL,
+  ide = "none"
+)
