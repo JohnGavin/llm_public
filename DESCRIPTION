@@ -1,0 +1,33 @@
+Package: llmpublic
+Title: Small Utilities for LLM Usage Tracking, Code Analysis and Notes Search
+Version: 0.0.0.9000
+Authors@R:
+    person("John", "Gavin", , "john.b.gavin@gmail.com", role = c("aut", "cre"))
+Description: A small collection of generic helpers. It parses and
+    summarises usage reports from the 'ccusage' command line tool, with
+    terminal progress bars and a DuckDB store. It extracts function calls
+    and definitions from R source files and builds frequency tables and
+    call networks. It builds and queries a full-text (BM25) search index
+    over a directory of markdown notes. It generates hover-popup HTML
+    spans. Every function takes its paths and data as explicit arguments.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports:
+    checkmate,
+    cli,
+    DBI,
+    dplyr,
+    duckdb,
+    htmltools,
+    jsonlite,
+    purrr,
+    scales,
+    tibble,
+    utils
+Suggests:
+    chromote,
+    testthat (>= 3.0.0),
+    withr
+Config/testthat/edition: 3
+RoxygenNote: 7.3.3
