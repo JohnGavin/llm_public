@@ -18,7 +18,8 @@ List containing:
 \itemize{
 \item \code{tokens_used}: Numeric, tokens used in the current block
 \item \code{tokens_limit}: Numeric, token limit per block (default 88000)
-\item \code{usage_pct}: Integer, percentage of block limit used (0-100)
+\item \code{usage_pct}: Integer, percentage of block limit used (not capped: above
+100 when the limit is exceeded)
 \item \code{time_remaining}: difftime object, time remaining in the block
 \item \code{block_start}: POSIXct, block start time
 \item \code{block_end}: POSIXct, block end time

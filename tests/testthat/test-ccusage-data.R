@@ -116,7 +116,10 @@ test_that("summarize_llm_usage() returns the expected metrics", {
   expect_equal(res$value[res$metric == "Total Tokens"], "6,000")
   expect_equal(res$value[res$metric == "Days Active"], "2")
   expect_equal(res$value[res$metric == "Date Range"], "2026-01-01 to 2026-01-02")
-  expect_equal(res$value[res$metric == "Avg Cost/Day"], "$20.00")
+  # Rows are per project per day: 3 rows over 2 distinct dates totalling $60,
+  # so the per-day average is 60 / 2 = $30, not the per-row mean $20 (review 15425).
+  expect_equal(res$value[res$metric == "Avg Cost/Day"], "$30.00")
+  expect_equal(res$value[res$metric == "Avg Tokens/Day"], "3,000")
 })
 
 test_that("summarize_llm_usage() returns an empty tibble for NULL or empty input", {

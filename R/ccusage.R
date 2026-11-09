@@ -155,6 +155,9 @@ summarize_llm_usage <- function(daily_data) {
     ))
   }
 
+  # Rows are one per project per day, so average per distinct date, not per row
+  n_days <- dplyr::n_distinct(daily_data$date)
+
   tibble::tibble(
     metric = c(
       "Total Cost (USD)",
@@ -167,10 +170,10 @@ summarize_llm_usage <- function(daily_data) {
     value = c(
       sprintf("$%.2f", sum(daily_data$totalCost, na.rm = TRUE)),
       scales::comma(sum(daily_data$totalTokens, na.rm = TRUE)),
-      as.character(dplyr::n_distinct(daily_data$date)),
+      as.character(n_days),
       sprintf("%s to %s", min(daily_data$date), max(daily_data$date)),
-      sprintf("$%.2f", mean(daily_data$totalCost, na.rm = TRUE)),
-      scales::comma(round(mean(daily_data$totalTokens, na.rm = TRUE)))
+      sprintf("$%.2f", sum(daily_data$totalCost, na.rm = TRUE) / n_days),
+      scales::comma(round(sum(daily_data$totalTokens, na.rm = TRUE) / n_days))
     )
   )
 }
@@ -327,6 +330,49 @@ query_latest_usage <- function(db_path, table_name = "daily_usage") {
     dplyr::filter(fetch_timestamp == max(fetch_timestamp, na.rm = TRUE))
 }
 
+#' Read a numeric setting from an environment variable
+#'
+#' Aborts with a message naming the variable when the value is not a finite
+#' number (or, with `positive = TRUE`, not greater than zero).
+#'
+#' @param name Environment variable name.
+#' @param default Value (as a string) used when the variable is unset.
+#' @param positive If TRUE the value must be > 0, otherwise >= 0.
+#' @return A single finite number.
+#' @noRd
+env_number <- function(name, default, positive = TRUE) {
+  raw <- Sys.getenv(name, as.character(default))
+  is_number <- grepl(
+    "^\\s*[-+]?([0-9]+\\.?[0-9]*|\\.[0-9]+)([eE][-+]?[0-9]+)?\\s*$", raw
+  )
+  value <- if (is_number) as.numeric(raw) else NA_real_
+  ok <- is.finite(value) && (if (positive) value > 0 else value >= 0)
+  if (!ok) {
+    cli::cli_abort(c(
+      "x" = "Environment variable {.envvar {name}} must be a {if (positive) 'positive' else 'non-negative'} number.",
+      "i" = "Got: {.val {raw}}"
+    ))
+  }
+  value
+}
+
+#' Format remaining minutes as "Xh Ym" or "Ym"
+#'
+#' Rounds to whole minutes first, then splits, so 119.7 gives "2h 0m", never
+#' "1h 60m".
+#'
+#' @param minutes Numeric minutes remaining.
+#' @return A string.
+#' @noRd
+format_block_remaining <- function(minutes) {
+  total <- as.integer(round(minutes))
+  if (total > 60) {
+    sprintf("%dh %dm", total %/% 60L, total %% 60L)
+  } else {
+    sprintf("%dm", total)
+  }
+}
+
 #' Display progress bar for LLM usage
 #'
 #' @title Display Terminal Progress Bar for LLM Usage
@@ -477,15 +523,15 @@ show_daily_progress <- function(cache_dir,
                                  token_limit = NULL) {
   # Validate inputs
   checkmate::assert_directory_exists(cache_dir)
-  checkmate::assert_number(daily_limit, lower = 0, null.ok = TRUE)
-  checkmate::assert_number(token_limit, lower = 0, null.ok = TRUE)
+  checkmate::assert_number(daily_limit, lower = 1e-5, finite = TRUE, null.ok = TRUE)
+  checkmate::assert_number(token_limit, lower = 1, finite = TRUE, null.ok = TRUE)
 
   # Get limits from environment or defaults
   if (is.null(daily_limit)) {
-    daily_limit <- as.numeric(Sys.getenv("LLMPUBLIC_DAILY_LIMIT", "30"))
+    daily_limit <- env_number("LLMPUBLIC_DAILY_LIMIT", "30")
   }
   if (is.null(token_limit)) {
-    token_limit <- as.numeric(Sys.getenv("LLMPUBLIC_DAILY_TOKEN_LIMIT", "500000"))
+    token_limit <- env_number("LLMPUBLIC_DAILY_TOKEN_LIMIT", "500000")
   }
 
   # Load today's data
@@ -573,11 +619,11 @@ show_daily_progress <- function(cache_dir,
 show_weekly_progress <- function(cache_dir, weekly_limit = NULL) {
   # Validate inputs
   checkmate::assert_directory_exists(cache_dir)
-  checkmate::assert_number(weekly_limit, lower = 0, null.ok = TRUE)
+  checkmate::assert_number(weekly_limit, lower = 1e-5, finite = TRUE, null.ok = TRUE)
 
   # Get limit from environment or default
   if (is.null(weekly_limit)) {
-    weekly_limit <- as.numeric(Sys.getenv("LLMPUBLIC_WEEKLY_LIMIT", "120"))
+    weekly_limit <- env_number("LLMPUBLIC_WEEKLY_LIMIT", "120")
   }
 
   # Load daily data
@@ -670,9 +716,9 @@ show_usage_dashboard <- function(cache_dir,
                                   show_max5 = TRUE) {
   # Validate inputs
   checkmate::assert_directory_exists(cache_dir)
-  checkmate::assert_number(daily_limit, lower = 0, null.ok = TRUE)
-  checkmate::assert_number(weekly_limit, lower = 0, null.ok = TRUE)
-  checkmate::assert_number(token_limit, lower = 0, null.ok = TRUE)
+  checkmate::assert_number(daily_limit, lower = 1e-5, finite = TRUE, null.ok = TRUE)
+  checkmate::assert_number(weekly_limit, lower = 1e-5, finite = TRUE, null.ok = TRUE)
+  checkmate::assert_number(token_limit, lower = 1, finite = TRUE, null.ok = TRUE)
   checkmate::assert_flag(show_max5)
 
   cli::cli_h1("LLM Usage Dashboard")
@@ -730,7 +776,8 @@ show_usage_dashboard <- function(cache_dir,
 #'
 #' @return List containing:
 #'   - `block_start`: POSIXct, start time of the current block
-#'   - `block_end`: POSIXct, end time of the current block (5 hours later)
+#'   - `block_end`: POSIXct, end time of the current block (5 hours later, or
+#'     the next local midnight for the last block of the day)
 #'   - `time_remaining`: difftime object, time remaining in the current block
 #'
 #' @export
@@ -771,19 +818,28 @@ get_current_block_window <- function(current_time = Sys.time()) {
     cli::cli_abort(c("x" = "{.arg current_time} is NA and must be a valid date/time"))
   }
 
-  # Get hour of day (0-23)
-  hour <- as.integer(format(current_time, "%H"))
+  # Local calendar date and hour of day (0-23), in the time zone of `current_time`
+  tz <- attr(current_time, "tzone")[1]
+  if (is.null(tz) || is.na(tz)) tz <- ""
+  lt <- as.POSIXlt(current_time, tz = tz)
+  hour <- lt$hour
 
-  # Calculate block start hour (0, 5, 10, 15, 20)
-  block_start_hour <- floor(hour / 5) * 5
+  # Block start hour (0, 5, 10, 15, 20)
+  block_start_hour <- (hour %/% 5L) * 5L
 
-  # Block start: the top of the current hour, moved back to the block boundary
-  # (keeps the time zone of `current_time`)
-  block_start <- as.POSIXct(trunc(current_time, units = "hours")) -
-    (hour - block_start_hour) * 3600
-
-  # Block ends 5 hours later
-  block_end <- block_start + 5 * 3600
+  # Build both ends from the local date and hour rather than by adding elapsed
+  # seconds, so a DST change does not shift them. The last block (20:00) is
+  # clamped to the next local midnight.
+  local_time <- function(date, hr) {
+    as.POSIXct(sprintf("%s %02d:00:00", format(date, "%Y-%m-%d"), hr), tz = tz)
+  }
+  local_date <- as.Date(sprintf("%04d-%02d-%02d", lt$year + 1900L, lt$mon + 1L, lt$mday))
+  block_start <- local_time(local_date, block_start_hour)
+  block_end <- if (block_start_hour + 5L >= 24L) {
+    local_time(local_date + 1, 0L)
+  } else {
+    local_time(local_date, block_start_hour + 5L)
+  }
 
   list(
     block_start = block_start,
@@ -809,7 +865,8 @@ get_current_block_window <- function(current_time = Sys.time()) {
 #' @return List containing:
 #'   - `tokens_used`: Numeric, tokens used in the current block
 #'   - `tokens_limit`: Numeric, token limit per block (default 88000)
-#'   - `usage_pct`: Integer, percentage of block limit used (0-100)
+#'   - `usage_pct`: Integer, percentage of block limit used (not capped: above
+#'     100 when the limit is exceeded)
 #'   - `time_remaining`: difftime object, time remaining in the block
 #'   - `block_start`: POSIXct, block start time
 #'   - `block_end`: POSIXct, block end time
@@ -847,7 +904,7 @@ calculate_block_usage <- function(blocks_data, current_window) {
     # LLMPUBLIC_BLOCK_LIMIT_TOKENS set.
     return(list(
       tokens_used = 0,
-      tokens_limit = as.numeric(Sys.getenv("LLMPUBLIC_BLOCK_LIMIT_TOKENS", "88000")),
+      tokens_limit = env_number("LLMPUBLIC_BLOCK_LIMIT_TOKENS", "88000"),
       usage_pct = 0,
       time_remaining = current_window$time_remaining,
       block_start = current_window$block_start,
@@ -869,7 +926,7 @@ calculate_block_usage <- function(blocks_data, current_window) {
   }
 
   # Max5 limit per 5-hour block
-  tokens_limit <- as.numeric(Sys.getenv("LLMPUBLIC_BLOCK_LIMIT_TOKENS", "88000"))
+  tokens_limit <- env_number("LLMPUBLIC_BLOCK_LIMIT_TOKENS", "88000")
 
   list(
     tokens_used = tokens_used,
@@ -938,14 +995,7 @@ show_max5_block_status <- function(cache_dir) {
   block_stats <- calculate_block_usage(blocks_data, current_window)
 
   # Format time remaining
-  time_remaining <- as.numeric(block_stats$time_remaining)  # Convert to minutes
-  if (time_remaining > 60) {
-    hours <- floor(time_remaining / 60)
-    mins <- round(time_remaining - (hours * 60))
-    time_str <- sprintf("%dh %dm", hours, mins)
-  } else {
-    time_str <- sprintf("%dm", round(time_remaining))
-  }
+  time_str <- format_block_remaining(as.numeric(block_stats$time_remaining, units = "mins"))
 
   cli::cli_text("{.dim Block: {format(block_stats$block_start, '%H:%M')} - {format(block_stats$block_end, '%H:%M')} | Remaining: {time_str}}")
 
@@ -954,7 +1004,9 @@ show_max5_block_status <- function(cache_dir) {
   color <- if (pct >= 90) "red" else if (pct >= 75) "yellow" else "green"
 
   bar_width <- 40
-  filled <- round(bar_width * pct / 100)
+  # Cap only the bar; the text and warnings keep the real percentage
+  bar_pct <- min(100, max(0, pct))
+  filled <- round(bar_width * bar_pct / 100)
   empty <- bar_width - filled
   bar <- paste0(strrep("\U00002588", filled), strrep("\U00002591", empty))  # full block and light shade
 
@@ -970,8 +1022,8 @@ show_max5_block_status <- function(cache_dir) {
   cli::cli_end()
 
   # Add warnings based on thresholds
-  warn_threshold <- as.numeric(Sys.getenv("LLMPUBLIC_WARN_THRESHOLD", "0.75"))
-  critical_threshold <- as.numeric(Sys.getenv("LLMPUBLIC_CRITICAL_THRESHOLD", "0.90"))
+  warn_threshold <- env_number("LLMPUBLIC_WARN_THRESHOLD", "0.75", positive = FALSE)
+  critical_threshold <- env_number("LLMPUBLIC_CRITICAL_THRESHOLD", "0.90", positive = FALSE)
 
   if (pct >= critical_threshold * 100) {
     cli::cli_alert_danger("CRITICAL: {pct}% of 5-hour block limit reached - consider pausing")
@@ -1051,7 +1103,7 @@ get_block_history <- function(cache_dir, days = 5, grouped = TRUE) {
   # Max5 limit per 5-hour block. This MUST match the LLMPUBLIC_BLOCK_LIMIT_TOKENS
   # override used by calculate_block_usage(), so setting the env var changes
   # both show_max5_block_status() and get_block_history().
-  tokens_limit <- as.numeric(Sys.getenv("LLMPUBLIC_BLOCK_LIMIT_TOKENS", "88000"))
+  tokens_limit <- env_number("LLMPUBLIC_BLOCK_LIMIT_TOKENS", "88000")
 
   # Get cutoff time
   cutoff <- Sys.time() - days * 24 * 3600

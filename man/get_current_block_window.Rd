@@ -14,7 +14,8 @@ converted to POSIXct. Defaults to \code{\link[=Sys.time]{Sys.time()}}.}
 List containing:
 \itemize{
 \item \code{block_start}: POSIXct, start time of the current block
-\item \code{block_end}: POSIXct, end time of the current block (5 hours later)
+\item \code{block_end}: POSIXct, end time of the current block (5 hours later, or
+the next local midnight for the last block of the day)
 \item \code{time_remaining}: difftime object, time remaining in the current block
 }
 }
