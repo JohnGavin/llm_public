@@ -218,9 +218,9 @@ test_that("get_current_block_window calculates blocks correctly", {
   r <- get_current_block_window(as.POSIXct("2026-01-22 14:30:00"))
   expect_equal(c(hours(r$block_start), hours(r$block_end)), c(10, 15))
 
-  # Last block of the day ends at 01:00 the next day
+  # Last block of the day is clamped to the next local midnight (review 15425)
   r <- get_current_block_window(as.POSIXct("2026-01-22 22:30:00"))
-  expect_equal(c(hours(r$block_start), hours(r$block_end)), c(20, 1))
+  expect_equal(c(hours(r$block_start), hours(r$block_end)), c(20, 0))
 })
 
 test_that("get_current_block_window calculates time remaining correctly", {
@@ -466,4 +466,74 @@ test_that("get_block_history validates its arguments", {
   expect_error(get_block_history())
   expect_error(get_block_history(cache, days = 0))
   expect_error(get_block_history(cache, grouped = "yes"))
+})
+
+# ============================================================================
+# 9. Review 15425 regressions
+# ============================================================================
+
+test_that("show_max5_block_status renders over the limit and shows the real pct", {
+  withr::local_options(list(cli.num_colors = 1, cli.dynamic = FALSE))
+  cache <- write_ccusage_cache(list(demo = blocks_df(in_current_block(), 100000)), "blocks")
+
+  out <- paste(testthat::capture_messages(
+    result <- show_max5_block_status(cache)
+  ), collapse = "")
+  expect_equal(result$usage_pct, 114)
+  expect_match(out, "114%", fixed = TRUE)
+})
+
+test_that("a non-numeric env limit gives a cli error naming the variable", {
+  cache <- write_ccusage_cache(list(demo = blocks_df(in_current_block(), 1000)), "blocks")
+
+  withr::local_envvar(LLMPUBLIC_BLOCK_LIMIT_TOKENS = "lots")
+  expect_error(show_max5_block_status(cache), "LLMPUBLIC_BLOCK_LIMIT_TOKENS")
+  expect_error(calculate_block_usage(NULL, get_current_block_window()), "LLMPUBLIC_BLOCK_LIMIT_TOKENS")
+
+  withr::local_envvar(LLMPUBLIC_BLOCK_LIMIT_TOKENS = "0")
+  expect_error(show_max5_block_status(cache), "LLMPUBLIC_BLOCK_LIMIT_TOKENS")
+})
+
+test_that("env limits for daily and weekly progress are validated", {
+  cache <- write_ccusage_cache(list(demo = daily_df()))
+
+  withr::local_envvar(LLMPUBLIC_DAILY_LIMIT = "abc")
+  expect_error(show_daily_progress(cache), "LLMPUBLIC_DAILY_LIMIT")
+
+  withr::local_envvar(LLMPUBLIC_DAILY_LIMIT = "30", LLMPUBLIC_DAILY_TOKEN_LIMIT = "0")
+  expect_error(show_daily_progress(cache), "LLMPUBLIC_DAILY_TOKEN_LIMIT")
+
+  withr::local_envvar(LLMPUBLIC_WEEKLY_LIMIT = "-5")
+  expect_error(show_weekly_progress(cache), "LLMPUBLIC_WEEKLY_LIMIT")
+})
+
+test_that("limit arguments of 0 are rejected up front", {
+  cache <- write_ccusage_cache(list(demo = daily_df()))
+  expect_error(show_daily_progress(cache, daily_limit = 0), ">= 1e-05")
+  expect_error(show_daily_progress(cache, token_limit = 0), ">= 1")
+  expect_error(show_weekly_progress(cache, weekly_limit = 0), ">= 1e-05")
+  expect_error(show_usage_dashboard(cache, daily_limit = 0, show_max5 = FALSE), ">= 1e-05")
+  expect_error(show_usage_dashboard(cache, weekly_limit = 0, show_max5 = FALSE), ">= 1e-05")
+  expect_error(show_usage_dashboard(cache, token_limit = 0, show_max5 = FALSE), ">= 1")
+})
+
+test_that("the last block of the day ends at the next local midnight", {
+  r <- get_current_block_window(as.POSIXct("2026-01-22 22:30:00"))
+  expect_equal(format(r$block_start, "%Y-%m-%d %H:%M"), "2026-01-22 20:00")
+  expect_equal(format(r$block_end, "%Y-%m-%d %H:%M"), "2026-01-23 00:00")
+  expect_equal(as.numeric(r$time_remaining, units = "mins"), 90)
+})
+
+test_that("block start is built from the local date and hour on a DST day", {
+  t <- as.POSIXct("2026-03-29 03:30:00", tz = "Europe/London")
+  r <- get_current_block_window(t)
+  expect_equal(format(r$block_start, "%Y-%m-%d %H:%M", tz = "Europe/London"), "2026-03-29 00:00")
+  expect_equal(format(r$block_end, "%Y-%m-%d %H:%M", tz = "Europe/London"), "2026-03-29 05:00")
+})
+
+test_that("remaining time never renders as 60 minutes", {
+  expect_equal(format_block_remaining(119.7), "2h 0m")
+  expect_equal(format_block_remaining(119.4), "1h 59m")
+  expect_equal(format_block_remaining(90), "1h 30m")
+  expect_equal(format_block_remaining(45.4), "45m")
 })
